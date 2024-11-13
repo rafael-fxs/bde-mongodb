@@ -12,7 +12,7 @@ db.createCollection("usuarios", {
       required: ["nome", "email", "senha", "endereco", "criado_em"],
       properties: {
         nome: { bsonType: "string", description: "Nome do usuário" },
-        email: { bsonType: "string", description: "Email do usuário" },
+        email: { bsonType: "string", pattern: "^.+@.+$", description: "Email do usuário" },
         senha: { bsonType: "string", description: "Senha do usuário" },
         endereco: {
           bsonType: "object",
@@ -39,8 +39,8 @@ db.createCollection("produtos", {
       properties: {
         nome: { bsonType: "string", description: "Nome do produto" },
         descricao: { bsonType: "string", description: "Descrição do produto" },
-        preco: { bsonType: "decimal", description: "Preço do produto" },
-        quantidade_disponivel: { bsonType: "int" },
+        preco: { bsonType: "decimal", minimum: 0, description: "Preço do produto" },
+        quantidade_disponivel: { bsonType: "int", minimum: 0 },
         categoria_id: { bsonType: "objectId" },
         avaliacoes: {
           bsonType: "array",
@@ -70,7 +70,7 @@ db.createCollection("transacoes", {
       properties: {
         usuario_id: { bsonType: "objectId" },
         produto_id: { bsonType: "objectId" },
-        quantidade: { bsonType: "int" },
+        quantidade: { bsonType: "int", minimum: 1 },
         valor_total: { bsonType: "decimal" },
         status: { bsonType: "string", enum: ["pendente", "concluída", "cancelada"] },
         data_transacao: { bsonType: "date" }
@@ -182,6 +182,7 @@ db.produtos.insertMany([
     ]
   }
 ]);
+
 
 db.produtos.find().pretty();
 
@@ -311,6 +312,7 @@ db.transacoes.aggregate([
 //// 6. Promoções:
 // Implemente uma funcionalidade que permita aos vendedores oferecerem descontos 
 // em seus produtos por um período limitado
+
 db.produtos.updateMany(
   {},
   {
@@ -322,21 +324,45 @@ db.produtos.updateMany(
   }
 );
 
+// db.runCommand({
+//   collMod: "produtos",
+//   validator: {
+//     $jsonSchema: {
+//       bsonType: "object",
+//       properties: {
+//         desconto_percentual: {
+//           bsonType: ["double", "null"],
+//           minimum: 0,
+//           maximum: 100,
+//           description: "O desconto deve ser uma porcentagem entre 0 e 100."
+//         },
+//         inicio_promocao: {
+//           bsonType: ["date", "null"],
+//           description: "A data de início da promoção deve ser uma data válida ou nula."
+//         },
+//         fim_promocao: {
+//           bsonType: ["date", "null"],
+//           description: "A data de término da promoção deve ser uma data válida ou nula."
+//         }
+//       }
+//     }
+//   }
+// });
+
 const produtoSmartphoneX1Id = db.produtos.findOne({ nome: "Smartphone X1" })._id;
 db.produtos.updateOne(
   { _id: produtoSmartphoneX1Id },
   {
     $set: {
-      desconto_percentual: NumberDecimal("10.0"),
+      desconto_percentual: 15,
       inicio_promocao: new Date("2024-11-20"),
       fim_promocao: new Date("2024-11-30")
     }
   }
 );
-const produtoSmartphoneX1Atualizado = db.produtos.findOne({ _id: produtoSmartphoneX1Id });
-produtoSmartphoneX1Atualizado;
+const produtoSmartphoneX1Atualizado = db.produtos.findOne({ _id: produtoSmartphoneX1Id })
 
-//// 7. Promoções:
+//// 7. Pontos de Fidelidade:
 // Implemente um sistema de pontos de fidelidade onde os usuários ganham pontos por cada compra,
 // que podem ser usados para descontos em futuras compras.
 db.usuarios.updateMany(
